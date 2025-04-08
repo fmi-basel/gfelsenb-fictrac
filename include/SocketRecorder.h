@@ -8,7 +8,7 @@
 
 #if 0	// TCP sockets
 
-#ifdef __APPLE__ || __linux__ 
+#ifdef __APPLE__ || __linux__
 #include "SocketRecorder_linux.h"
 #elif _WIN32
 #include "SocketRecorder_win.h"
@@ -35,7 +35,7 @@ private:
     std::string _host;
     int _port;
 
-    boost::asio::io_service _io_service;
+    boost::asio::io_context _io_context;
     boost::asio::ip::udp::socket _socket;
     boost::asio::ip::udp::endpoint _endpoint;
 };

@@ -29,7 +29,7 @@ using boost::asio::ip::udp;
 ///
 ///
 SocketRecorder::SocketRecorder()
-    : _socket(_io_service)
+    : _socket(_io_context)
 {
     _type = SOCK;
 }
