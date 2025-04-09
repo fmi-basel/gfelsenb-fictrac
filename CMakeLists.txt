@@ -38,6 +38,7 @@ elseif(PGR_USB2)
 elseif(BASLER_USB3)
     set(BASLER_DIR "." CACHE PATH "Path to Basler Pylon SDK folder")
 endif()
+set(PGR_DIR "C:\Program Files\Teledyne\Spinnaker")
 
 # find dependencies
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${OPENCV_DIR} ${NLOPT_DIR})
