@@ -5,7 +5,7 @@ project (FicTrac)
 set(FICTRAC_VERSION_MAJOR 2)
 set(FICTRAC_VERSION_MIDDLE 1)
 set(FICTRAC_VERSION_MINOR 2)
- 
+
 # output version info to be included by project
 configure_file (
     "${PROJECT_SOURCE_DIR}/include/fictrac_version.h.in"
@@ -28,7 +28,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 
 # optional build config
-option(PGR_USB3 "Use Spinnaker SDK to capture from PGR USB3 cameras" OFF) # Disabled by default
+option(PGR_USB3 "Use Spinnaker SDK to capture from PGR USB3 cameras" ON) # Disabled by default
 option(PGR_USB2 "Use FlyCapture SDK to capture from PGR USB2 cameras" OFF) # Disabled by default
 option(BASLER_USB3 "Use Pylon SDK to capture from Basler USB3 cameras" OFF) # Disabled by default
 if(PGR_USB3)
@@ -61,10 +61,10 @@ if(WIN32)
     elseif(BASLER_USB3)
         set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${BASLER_DIR}/Development/lib/x64)
 		find_library(BASLER_LIB PylonBase_MD_VC120_v5_0.lib)
-		
+
 		file(GLOB BASLER_LIBS ${BASLER_DIR}/Development/lib/x64/*.lib)
     endif()
-    
+
 else()  # gcc
     if(PGR_USB3)
         set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${PGR_DIR})
@@ -74,8 +74,8 @@ else()  # gcc
         find_library(PGR_LIB libflycapture.so)
     elseif(BASLER_USB3)
         set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${BASLER_DIR}/lib64)
-        find_library(BASLER_LIB libpylonbase.so)       
-        
+        find_library(BASLER_LIB libpylonbase.so)
+
 		file(GLOB BASLER_LIBS ${BASLER_DIR}/lib64/*.so)
     endif()
 endif()
