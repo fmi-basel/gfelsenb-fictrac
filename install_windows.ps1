@@ -5,7 +5,7 @@ Write-Host "|    FicTrac install script    |"
 Write-Host "+------------------------------+"
 Write-Host
 
-$MSYS_DIR = Read-Host -Prompt "Enter full path to MSYS install directory (e.g. C:\msys64)"
+$MSYS_DIR = "C:\msys64" ##fixed Read-Host -Prompt "Enter full path to MSYS install directory (e.g. C:\msys64)"
 $MSYS_BIN_DIR = "$MSYS_DIR\mingw64\bin"
 if (Test-Path -Path $MSYS_BIN_DIR) {
     Write-Host "Found MSYS bin dir at: $MSYS_BIN_DIR"
@@ -70,7 +70,7 @@ cmake -G "MinGW Makefiles" --fresh ..
 Write-Host
 Write-Host "+-- Building FicTrac ----------+"
 Write-Host
-$NPROC = [Environment]::GetEnvironmentVariable("NUMBER_OF_PROCESSORS") 
+$NPROC = [Environment]::GetEnvironmentVariable("NUMBER_OF_PROCESSORS")
 cmake --build . --config Release --parallel $NPROC --clean-first
 
 
