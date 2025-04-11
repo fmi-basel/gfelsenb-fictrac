@@ -34,6 +34,7 @@ Write-Host "           mingw-w64-x86_64-make  \"
 Write-Host "           mingw-w64-x86_64-nlopt \"
 Write-Host "           mingw-w64-x86_64-boost \"
 Write-Host "           mingw-w64-x86_64-ffmpeg\"
+Write-Host "           mingw-w64-x86_64-qt6-base\"
 Write-Host "           mingw-w64-x86_64-opencv"
 Write-Host
 Write-Host "Close the MSYS console when all commands have completed successully"
