@@ -440,6 +440,33 @@ Trackball::Trackball(string cfg_fn, string src_override)
         _do_com_output = true;
     }
 
+    /// Shared memory output.
+    _do_shm_output = false;
+    {
+        bool shm_enabled = false;
+        if (_cfg.getBool("shm_output", shm_enabled) && shm_enabled) {
+            std::string shm_frame_name = "fictrac_frames";
+            _cfg.getStr("shm_frame_name", shm_frame_name);
+            std::string shm_tracking_name = "fictrac_tracking";
+            _cfg.getStr("shm_tracking_name", shm_tracking_name);
+            int shm_frame_slots = 4;
+            _cfg.getInt("shm_frame_slots", shm_frame_slots);
+            int shm_tracking_slots = 8;
+            _cfg.getInt("shm_tracking_slots", shm_tracking_slots);
+
+            _shm_publisher = std::make_shared<SharedMemoryPublisher>(
+                shm_frame_name, _roi_w, _roi_h, shm_frame_slots,
+                shm_tracking_name, shm_tracking_slots);
+
+            if (_shm_publisher->isActive()) {
+                _do_shm_output = true;
+            } else {
+                LOG_ERR("Error! Could not create shared memory regions.");
+                _shm_publisher.reset();
+            }
+        }
+    }
+
     /// Display.
     _do_display = DO_DISPLAY_DEFAULT;
     if (!_cfg.getBool("do_display", _do_display)) {
@@ -539,7 +566,10 @@ Trackball::Trackball(string cfg_fn, string src_override)
         _roi_mask,
         thresh_ratio,
         thresh_win_pc,
-        _cfg("thr_rgb_tfrm")
+        _cfg("thr_rgb_tfrm"),
+        1,          // max_buf_len (default)
+        -1,         // max_frame_cnt (default)
+        _shm_publisher
     );
 
     /// Write all parameters back to config file.
@@ -671,6 +701,14 @@ void Trackball::process()
             logData();  // only output good data
             t5 = ts_ms();
             nbad = 0;
+        }
+
+        /// Write raw video frame (decoupled from display pipeline).
+        if (_save_raw) {
+            _raw_vid.write(_src_frame);
+            if (_vid_frames) {
+                _vid_frames->addMsg(to_string(_data.cnt) + "\n");
+            }
         }
 
         /// Handle failed localisation.
@@ -1026,6 +1064,25 @@ bool Trackball::logData()
 
     // async i/o
     bool ret = true;
+
+    // shared memory output
+    if (_do_shm_output && _shm_publisher) {
+        TrackingSlot ts = {};
+        ts.cnt = _data.cnt;
+        ts.seq = _data.seq;
+        ts.dr_cam[0] = _data.dr_cam.x; ts.dr_cam[1] = _data.dr_cam.y; ts.dr_cam[2] = _data.dr_cam.z;
+        ts.dr_lab[0] = _data.dr_lab.x; ts.dr_lab[1] = _data.dr_lab.y; ts.dr_lab[2] = _data.dr_lab.z;
+        ts.r_cam[0] = _data.r_cam.x;   ts.r_cam[1] = _data.r_cam.y;   ts.r_cam[2] = _data.r_cam.z;
+        ts.r_lab[0] = _data.r_lab.x;   ts.r_lab[1] = _data.r_lab.y;   ts.r_lab[2] = _data.r_lab.z;
+        ts.posx = _data.posx;           ts.posy = _data.posy;           ts.heading = _data.heading;
+        ts.step_dir = _data.step_dir;   ts.step_mag = _data.step_mag;
+        ts.intx = _data.intx;           ts.inty = _data.inty;
+        ts.ts = _data.ts;               ts.ms = _data.ms;
+        ts.err = _err;
+        ts.velx = _data.velx;           ts.vely = _data.vely;
+        _shm_publisher->writeTrackingData(ts);
+    }
+
     if (_do_sock_output) {
         ret &= _data_sock->addMsg("FT, " + ss.str());
     }
@@ -1447,14 +1504,13 @@ void Trackball::drawCanvas(shared_ptr<DrawData> data)
         _do_reset = true;
     }
 
-    if (_save_raw) {
-        _raw_vid.write(src_frame);
-    }
+    // Raw video and vid_frames logging are now handled in process() loop,
+    // decoupled from the display pipeline.
     if (_save_debug) {
         _debug_vid.write(canvas);
-    }
-    if (_save_raw || _save_debug) {
-        _vid_frames->addMsg(to_string(log_frame) + "\n");
+        if (_vid_frames) {
+            _vid_frames->addMsg(to_string(log_frame) + "\n");
+        }
     }
 }
 

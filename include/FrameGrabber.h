@@ -9,6 +9,7 @@
 #include "CameraModel.h"
 #include "CameraRemap.h"
 #include "FrameSource.h"
+#include "SharedMemoryPublisher.h"
 
 #include <opencv2/opencv.hpp>
 
@@ -32,7 +33,8 @@ public:
                     double                          thresh_win_pc,
                     std::string                     thresh_rgb_transform = "grey",
                     int                             max_buf_len = 1,
-                    int                             max_frame_cnt = -1
+                    int                             max_frame_cnt = -1,
+                    std::shared_ptr<SharedMemoryPublisher> shm_publisher = nullptr
     );
     ~FrameGrabber();
 
@@ -77,4 +79,7 @@ private:
     /// Output queues.
     std::deque<cv::Mat> _frame_q, _remap_q;
     std::deque<double> _ts_q, _ms_q;
+
+    /// Shared memory publisher (optional).
+    std::shared_ptr<SharedMemoryPublisher> _shm_publisher;
 };

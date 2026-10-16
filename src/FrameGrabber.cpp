@@ -33,8 +33,10 @@ FrameGrabber::FrameGrabber( shared_ptr<FrameSource> source,
                             double                  thresh_win_pc,
                             string                  thresh_rgb_transform,
                             int                     max_buf_len,
-                            int                     max_frame_cnt
-)   : _source(source), _remapper(remapper), _remap_mask(remap_mask), _active(false)
+                            int                     max_frame_cnt,
+                            shared_ptr<SharedMemoryPublisher> shm_publisher
+)   : _source(source), _remapper(remapper), _remap_mask(remap_mask), _active(false),
+      _shm_publisher(shm_publisher)
 {
     /// Quick sizes.
     _w = _remapper->getSrcW();
@@ -274,6 +276,11 @@ void FrameGrabber::process()
             break;
         }
         _remapper->apply(frame_grey, remap_grey);
+
+        /// Publish grayscale remapped frame before thresholding destroys it.
+        if (_shm_publisher) {
+            _shm_publisher->writeFrame(remap_grey);
+        }
 
         /// Blur image before calculating region min/max values.
         medianBlur(remap_grey, remap_blur, 3);

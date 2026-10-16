@@ -12,6 +12,7 @@
 #include "Recorder.h"
 #include "FrameGrabber.h"
 #include "ConfigParser.h"
+#include "SharedMemoryPublisher.h"
 
 /// OpenCV individual includes required by gcc?
 #include <opencv2/highgui.hpp>
@@ -175,8 +176,9 @@ private:
     /// Data i/o.
     std::string _base_fn;
     std::unique_ptr<FrameGrabber> _frameGrabber;
-    bool _do_sock_output, _do_com_output;
+    bool _do_sock_output, _do_com_output, _do_shm_output;
     std::unique_ptr<Recorder> _data_log, _data_sock, _data_com, _vid_frames;
+    std::shared_ptr<SharedMemoryPublisher> _shm_publisher;
 
     /// Thread stuff.
     std::atomic_bool _active, _kill, _do_reset;
