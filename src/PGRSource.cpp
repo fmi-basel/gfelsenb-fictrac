@@ -268,8 +268,10 @@ bool PGRSource::grab(cv::Mat& frame)
     }
 
     try {
-        // Convert image
-        ImagePtr bgr_image = pgr_image->Convert(PixelFormat_BGR8, NEAREST_NEIGHBOR);
+        // Convert image (newer Spinnaker SDK uses ImageProcessor)
+        ImageProcessor processor;
+        processor.SetColorProcessing(SPINNAKER_COLOR_PROCESSING_ALGORITHM_NEAREST_NEIGHBOR);
+        ImagePtr bgr_image = processor.Convert(pgr_image, PixelFormat_BGR8);
 
         Mat tmp(_height, _width, CV_8UC3, bgr_image->GetData(), bgr_image->GetStride());
         tmp.copyTo(frame);
