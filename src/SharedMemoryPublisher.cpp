@@ -89,6 +89,77 @@ SharedMemoryPublisher::~SharedMemoryPublisher()
     if (_tracking_shm_handle) {
         CloseHandle(_tracking_shm_handle);
     }
+    if (_raw_shm_ptr) {
+        UnmapViewOfFile(_raw_shm_ptr);
+    }
+    if (_raw_shm_handle) {
+        CloseHandle(_raw_shm_handle);
+    }
+}
+
+///
+/// Create the raw (full camera frame) region.
+///
+bool SharedMemoryPublisher::enableRaw(const std::string& raw_shm_name,
+                                      int src_w, int src_h, int slots, int every)
+{
+    if (!_active || every <= 0 || src_w <= 0 || src_h <= 0 || slots <= 0) { return false; }
+
+    _raw_w = src_w;
+    _raw_h = src_h;
+    _raw_slots = slots;
+    _raw_bytes = static_cast<size_t>(src_w) * src_h;
+    _raw_shm_size = RAW_HEADER_SIZE + _raw_slots * _raw_bytes;
+
+    _raw_shm_handle = CreateFileMappingA(
+        INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE,
+        0, static_cast<DWORD>(_raw_shm_size),
+        raw_shm_name.c_str());
+    if (_raw_shm_handle) {
+        _raw_shm_ptr = static_cast<uint8_t*>(
+            MapViewOfFile(_raw_shm_handle, FILE_MAP_ALL_ACCESS, 0, 0, _raw_shm_size));
+    }
+    if (!_raw_shm_ptr) {
+        LOG_ERR("Failed to create raw frame shared memory '%s' (%lu bytes)",
+                raw_shm_name.c_str(), (unsigned long)_raw_shm_size);
+        if (_raw_shm_handle) { CloseHandle(_raw_shm_handle); _raw_shm_handle = nullptr; }
+        return false;
+    }
+    memset(_raw_shm_ptr, 0, _raw_shm_size);
+    uint32_t* dims = reinterpret_cast<uint32_t*>(_raw_shm_ptr + 8);
+    dims[0] = static_cast<uint32_t>(_raw_w);
+    dims[1] = static_cast<uint32_t>(_raw_h);
+    _raw_every = every;
+    LOG("  raw     = '%s' (%dx%d, every %d frames, %d slots, %lu bytes)",
+        raw_shm_name.c_str(), _raw_w, _raw_h, _raw_every, _raw_slots,
+        (unsigned long)_raw_shm_size);
+    return true;
+}
+
+///
+/// Publish the full grey camera frame, every _raw_every-th call.
+///
+void SharedMemoryPublisher::writeRaw(const cv::Mat& frame_grey)
+{
+    if (!_raw_shm_ptr || _raw_every <= 0) { return; }
+    if ((_raw_seen++ % static_cast<uint64_t>(_raw_every)) != 0) { return; }
+    if (frame_grey.empty() || frame_grey.cols != _raw_w || frame_grey.rows != _raw_h
+        || frame_grey.type() != CV_8UC1) { return; }
+
+    volatile long long* wr_idx = reinterpret_cast<volatile long long*>(_raw_shm_ptr);
+    uint64_t idx = static_cast<uint64_t>(*wr_idx);
+    size_t slot = idx % _raw_slots;
+    uint8_t* dst = _raw_shm_ptr + RAW_HEADER_SIZE + slot * _raw_bytes;
+
+    if (frame_grey.isContinuous()) {
+        memcpy(dst, frame_grey.data, _raw_bytes);
+    } else {
+        for (int r = 0; r < _raw_h; r++) {
+            memcpy(dst + r * _raw_w, frame_grey.ptr(r), _raw_w);
+        }
+    }
+
+    _InterlockedIncrement64(wr_idx);
 }
 
 ///

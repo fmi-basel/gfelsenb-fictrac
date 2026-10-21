@@ -53,6 +53,17 @@ public:
     /// Publish tracking data to the tracking ring buffer.
     void writeTrackingData(const TrackingSlot& slot);
 
+    /// Also publish the full grey camera frame (src_w x src_h) to a third
+    /// region, every `every`-th frame (every <= 0: off).  Layout: uint64 write
+    /// counter, uint32 width, uint32 height, then `slots` frames.  Returns
+    /// false (raw output off, the other regions unaffected) if it cannot be
+    /// created.
+    bool enableRaw(const std::string& raw_shm_name, int src_w, int src_h,
+                   int slots, int every);
+
+    /// Call once per grabbed frame; copies only every `every`-th one.
+    void writeRaw(const cv::Mat& frame_grey);
+
     bool isActive() const { return _active; }
 
     int frameW() const { return _frame_w; }
@@ -60,6 +71,17 @@ public:
 
 private:
     static const size_t HEADER_SIZE = 8;
+    static const size_t RAW_HEADER_SIZE = 16;
+
+    // Raw (full camera frame) shared memory
+    void*    _raw_shm_handle = nullptr;
+    uint8_t* _raw_shm_ptr = nullptr;
+    size_t   _raw_shm_size = 0;
+    int      _raw_w = 0, _raw_h = 0;
+    int      _raw_slots = 0;
+    size_t   _raw_bytes = 0;
+    int      _raw_every = 0;
+    uint64_t _raw_seen = 0;
 
     // Frame shared memory
     void*    _frame_shm_handle;

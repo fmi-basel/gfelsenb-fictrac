@@ -460,6 +460,16 @@ Trackball::Trackball(string cfg_fn, string src_override)
 
             if (_shm_publisher->isActive()) {
                 _do_shm_output = true;
+                /// Optional: the full grey camera frame, every Nth frame
+                /// (a live view of the whole image for an external preview).
+                int shm_raw_every = 0;
+                _cfg.getInt("shm_raw_every", shm_raw_every);
+                if (shm_raw_every > 0) {
+                    std::string shm_raw_name = "fictrac_raw";
+                    _cfg.getStr("shm_raw_name", shm_raw_name);
+                    _shm_publisher->enableRaw(shm_raw_name, source->getWidth(),
+                                              source->getHeight(), 3, shm_raw_every);
+                }
             } else {
                 LOG_ERR("Error! Could not create shared memory regions.");
                 _shm_publisher.reset();

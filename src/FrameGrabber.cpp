@@ -277,9 +277,11 @@ void FrameGrabber::process()
         }
         _remapper->apply(frame_grey, remap_grey);
 
-        /// Publish grayscale remapped frame before thresholding destroys it.
+        /// Publish grayscale remapped frame before thresholding destroys it,
+        /// and (every Nth frame, if enabled) the full grey camera frame.
         if (_shm_publisher) {
             _shm_publisher->writeFrame(remap_grey);
+            _shm_publisher->writeRaw(frame_grey);
         }
 
         /// Blur image before calculating region min/max values.
