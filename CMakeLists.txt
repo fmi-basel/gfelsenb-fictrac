@@ -31,6 +31,11 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 option(PGR_USB3 "Use Spinnaker SDK to capture from PGR USB3 cameras" ON) # Disabled by default
 option(PGR_USB2 "Use FlyCapture SDK to capture from PGR USB2 cameras" OFF) # Disabled by default
 option(BASLER_USB3 "Use Pylon SDK to capture from Basler USB3 cameras" OFF) # Disabled by default
+if(BASLER_USB3 AND PGR_USB3)
+    # PGR_USB3 defaults ON in this fork; one camera SDK per build.
+    message(STATUS "BASLER_USB3=ON: turning PGR_USB3 off")
+    set(PGR_USB3 OFF CACHE BOOL "Use Spinnaker SDK to capture from PGR USB3 cameras" FORCE)
+endif()
 if(PGR_USB3)
     set(PGR_DIR "." CACHE PATH "Path to PGR Spinnaker SDK folder")
 elseif(PGR_USB2)
@@ -59,8 +64,12 @@ if(WIN32)
         set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${PGR_DIR}/lib64/vs2015)
         find_library(PGR_LIB FlyCapture2_v140.lib)
     elseif(BASLER_USB3)
-        set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${BASLER_DIR}/Development/lib/x64)
-		find_library(BASLER_LIB PylonBase_MD_VC120_v5_0.lib)
+        # The PylonBase lib name carries the pylon version (PylonBase_MD_VC120_v5_0.lib
+        # in pylon 5, PylonBase_vN_M.lib later), so match any of them.
+        file(GLOB BASLER_BASE_LIBS ${BASLER_DIR}/Development/lib/x64/PylonBase*.lib)
+        if(BASLER_BASE_LIBS)
+            list(GET BASLER_BASE_LIBS 0 BASLER_LIB)
+        endif()
 
 		file(GLOB BASLER_LIBS ${BASLER_DIR}/Development/lib/x64/*.lib)
     endif()
@@ -160,6 +169,10 @@ if(PGR_USB2 OR PGR_USB3)
     target_link_libraries(fictrac_core PUBLIC ${PGR_LIB})
 elseif(BASLER_USB3)
     target_link_libraries(fictrac_core PUBLIC ${BASLER_LIBS})
+    if(WIN32)
+        # pylon headers also request their libs by name (#pragma comment(lib)).
+        target_link_directories(fictrac_core PUBLIC ${BASLER_DIR}/lib/x64)
+    endif()
 endif()
 
 target_link_libraries(configGui fictrac_core)
